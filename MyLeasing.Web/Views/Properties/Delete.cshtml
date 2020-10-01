@@ -1,0 +1,75 @@
+﻿@model MyLeasing.Web.Data.Entities.Property
+
+@{
+    ViewData["Title"] = "Delete";
+}
+
+<h2>Delete</h2>
+
+<h3>Are you sure you want to delete this?</h3>
+<div>
+    <h4>Property</h4>
+    <hr />
+    <dl class="dl-horizontal">
+        <dt>
+            @Html.DisplayNameFor(model => model.Neighborhood)
+        </dt>
+        <dd>
+            @Html.DisplayFor(model => model.Neighborhood)
+        </dd>
+        <dt>
+            @Html.DisplayNameFor(model => model.Address)
+        </dt>
+        <dd>
+            @Html.DisplayFor(model => model.Address)
+        </dd>
+        <dt>
+            @Html.DisplayNameFor(model => model.Price)
+        </dt>
+        <dd>
+            @Html.DisplayFor(model => model.Price)
+        </dd>
+        <dt>
+            @Html.DisplayNameFor(model => model.SquareMeters)
+        </dt>
+        <dd>
+            @Html.DisplayFor(model => model.SquareMeters)
+        </dd>
+        <dt>
+            @Html.DisplayNameFor(model => model.Rooms)
+        </dt>
+        <dd>
+            @Html.DisplayFor(model => model.Rooms)
+        </dd>
+        <dt>
+            @Html.DisplayNameFor(model => model.Stratum)
+        </dt>
+        <dd>
+            @Html.DisplayFor(model => model.Stratum)
+        </dd>
+        <dt>
+            @Html.DisplayNameFor(model => model.HasParkingLot)
+        </dt>
+        <dd>
+            @Html.DisplayFor(model => model.HasParkingLot)
+        </dd>
+        <dt>
+            @Html.DisplayNameFor(model => model.IsAvailable)
+        </dt>
+        <dd>
+            @Html.DisplayFor(model => model.IsAvailable)
+        </dd>
+        <dt>
+            @Html.DisplayNameFor(model => model.Remarks)
+        </dt>
+        <dd>
+            @Html.DisplayFor(model => model.Remarks)
+        </dd>
+    </dl>
+    
+    <form asp-action="Delete">
+        <input type="hidden" asp-for="Id" />
+        <input type="submit" value="Delete" class="btn btn-default" /> |
+        <a asp-action="Index">Back to List</a>
+    </form>
+</div>

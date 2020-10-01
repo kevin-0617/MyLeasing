@@ -10,7 +10,7 @@ namespace MyLeasing.Web.Data.Entities
         public User User { get; set; }
         public ICollection<Property> Properties { get; set; }
 
-        public ICollection<Contract> contracts { get; set; }
+        public ICollection<Contract>  contracts { get; set; }
 
     }
 }

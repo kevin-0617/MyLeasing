@@ -2,30 +2,44 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using MyLeasing.Web.Data;
 using MyLeasing.Web.Data.Entities;
+using MyLeasing.Web.Helpers;
+using MyLeasing.Web.Models;
 
 namespace MyLeasing.Web.Controllers
 {
+    [Authorize(Roles = "Manager")]
     public class OwnersController : Controller
     {
-        private readonly DataContext _context;
+        private readonly DataContext _dataContext;
+        private readonly IUserHelper _userHelper;
 
-        public OwnersController(DataContext context)
+
+        public OwnersController(
+            DataContext dataContext,
+            IUserHelper userHelper)
+
         {
-            _context = context;
+            _dataContext = dataContext;
+            _userHelper = userHelper;
+
         }
 
-        // GET: Owners
-        public async Task<IActionResult> Index()
+        public IActionResult Index()
         {
-            return View(await _context.Owners.ToListAsync());
+            //inner join
+            return View(_dataContext.Owners
+                .Include(o => o.User)
+                .Include(o => o.Properties)
+                .Include(o => o.contracts));
         }
 
-        // GET: Owners/Details/5
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null)
@@ -33,8 +47,14 @@ namespace MyLeasing.Web.Controllers
                 return NotFound();
             }
 
-            var owner = await _context.Owners
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var owner = await _dataContext.Owners
+                .Include(o => o.User)
+                .Include(o => o.Properties)
+                .ThenInclude(p => p.propertyImages)
+                .Include(o => o.contracts)
+                .ThenInclude(c => c.Lessee)
+                .ThenInclude(l => l.User)
+                .FirstOrDefaultAsync(o => o.Id == id);
             if (owner == null)
             {
                 return NotFound();
@@ -43,111 +63,134 @@ namespace MyLeasing.Web.Controllers
             return View(owner);
         }
 
-        // GET: Owners/Create
-        public IActionResult Create()
-        {
-            return View();
-        }
-
-        // POST: Owners/Create
-        // To protect from overposting attacks, please enable the specific properties you want to bind to, for 
-        // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id")] Owner owner)
+        public async Task<IActionResult> Create(AddUserViewModel view)
         {
             if (ModelState.IsValid)
             {
-                _context.Add(owner);
-                await _context.SaveChangesAsync();
+                var user = await AddUser(view);
+                if (user == null)
+                {
+                    ModelState.AddModelError(string.Empty, "This email is already used.");
+                    return View(view);
+                }
+
+                var owner = new Owner
+                {
+                    Properties = new List<Property>(),
+                    contracts = new List<Contract>(),
+                    User = user,
+                };
+
+                _dataContext.Owners.Add(owner);
+                await _dataContext.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            return View(owner);
+
+            return View(view);
         }
 
-        // GET: Owners/Edit/5
-        public async Task<IActionResult> Edit(int? id)
+        private async Task<User> AddUser(AddUserViewModel view)
+        {
+            var user = new User
+            {
+                Address = view.Address,
+                Document = view.Document,
+                Email = view.Username,
+                FirstName = view.FirstName,
+                LastName = view.LastName,
+                PhoneNumber = view.PhoneNumber,
+                UserName = view.Username
+            };
+
+            var result = await _userHelper.AddUserAsync(user, view.Password);
+            if (result != IdentityResult.Success)
+            {
+                return null;
+            }
+
+            var newUser = await _userHelper.GetUserByEmailAsync(view.Username);
+            await _userHelper.AddUserToRoleAsync(newUser, "Owner");
+            return newUser;
+        }
+
+        public async Task<IActionResult> AddProperty(int? id)
         {
             if (id == null)
             {
                 return NotFound();
             }
 
-            var owner = await _context.Owners.FindAsync(id);
+            var owner = await _dataContext.Owners.FindAsync(id.Value);
             if (owner == null)
             {
                 return NotFound();
             }
-            return View(owner);
+
+            var view = new PropertyViewModel
+            {
+                OwnerId = owner.Id,
+                PropertyTypes = GetComboPropertyTypes()
+            };
+
+            return View(view);
         }
 
-        // POST: Owners/Edit/5
-        // To protect from overposting attacks, please enable the specific properties you want to bind to, for 
-        // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id")] Owner owner)
+        public async Task<IActionResult> AddProperty(PropertyViewModel view)
         {
-            if (id != owner.Id)
-            {
-                return NotFound();
-            }
-
             if (ModelState.IsValid)
             {
-                try
-                {
-                    _context.Update(owner);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!OwnerExists(owner.Id))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-                return RedirectToAction(nameof(Index));
+                var property = await ToPropertyAsync(view);
+                _dataContext.Properties.Add(property);
+                await _dataContext.SaveChangesAsync();
+                return RedirectToAction($"{nameof(Details)}/{view.OwnerId}");
             }
-            return View(owner);
+
+            return View(view);
         }
 
-        // GET: Owners/Delete/5
-        public async Task<IActionResult> Delete(int? id)
+        private async Task<Property> ToPropertyAsync(PropertyViewModel view)
         {
-            if (id == null)
+            return new Property
             {
-                return NotFound();
-            }
+                Address = view.Address,
+                HasParkingLot = view.HasParkingLot,
+                IsAvailable = view.IsAvailable,
+                Neighborhood = view.Neighborhood,
+                Price = view.Price,
+                Rooms = view.Rooms,
+                SquareMeters = view.SquareMeters,
+                Stratum = view.Stratum,
+                Owner = await _dataContext.Owners.FindAsync(view.OwnerId),
+                PropertyType = await _dataContext.propertyTypes.FindAsync(view.PropertyTypeId),
+                Remarks = view.Remarks
+            };
+        }
 
-            var owner = await _context.Owners
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (owner == null)
+        private IEnumerable<SelectListItem> GetComboPropertyTypes()
+        {
+            var list = _dataContext.propertyTypes.Select(p => new SelectListItem
             {
-                return NotFound();
-            }
+                Text = p.Name,
+                Value = p.Id.ToString()
+            }).OrderBy(p => p.Text).ToList();
 
-            return View(owner);
+            list.Insert(0, new SelectListItem
+            {
+                Text = "(Select a property type...)",
+                Value = "0"
+            });
+
+            return list;
         }
 
-        // POST: Owners/Delete/5
-        [HttpPost, ActionName("Delete")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
-        {
-            var owner = await _context.Owners.FindAsync(id);
-            _context.Owners.Remove(owner);
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
-        }
 
-        private bool OwnerExists(int id)
-        {
-            return _context.Owners.Any(e => e.Id == id);
-        }
+
+
+
+
+
     }
 }

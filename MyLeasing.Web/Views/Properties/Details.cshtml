@@ -1,0 +1,72 @@
+﻿@model MyLeasing.Web.Data.Entities.Property
+
+@{
+    ViewData["Title"] = "Details";
+}
+
+<h2>Details</h2>
+
+<div>
+    <h4>Property</h4>
+    <hr />
+    <dl class="dl-horizontal">
+        <dt>
+            @Html.DisplayNameFor(model => model.Neighborhood)
+        </dt>
+        <dd>
+            @Html.DisplayFor(model => model.Neighborhood)
+        </dd>
+        <dt>
+            @Html.DisplayNameFor(model => model.Address)
+        </dt>
+        <dd>
+            @Html.DisplayFor(model => model.Address)
+        </dd>
+        <dt>
+            @Html.DisplayNameFor(model => model.Price)
+        </dt>
+        <dd>
+            @Html.DisplayFor(model => model.Price)
+        </dd>
+        <dt>
+            @Html.DisplayNameFor(model => model.SquareMeters)
+        </dt>
+        <dd>
+            @Html.DisplayFor(model => model.SquareMeters)
+        </dd>
+        <dt>
+            @Html.DisplayNameFor(model => model.Rooms)
+        </dt>
+        <dd>
+            @Html.DisplayFor(model => model.Rooms)
+        </dd>
+        <dt>
+            @Html.DisplayNameFor(model => model.Stratum)
+        </dt>
+        <dd>
+            @Html.DisplayFor(model => model.Stratum)
+        </dd>
+        <dt>
+            @Html.DisplayNameFor(model => model.HasParkingLot)
+        </dt>
+        <dd>
+            @Html.DisplayFor(model => model.HasParkingLot)
+        </dd>
+        <dt>
+            @Html.DisplayNameFor(model => model.IsAvailable)
+        </dt>
+        <dd>
+            @Html.DisplayFor(model => model.IsAvailable)
+        </dd>
+        <dt>
+            @Html.DisplayNameFor(model => model.Remarks)
+        </dt>
+        <dd>
+            @Html.DisplayFor(model => model.Remarks)
+        </dd>
+    </dl>
+</div>
+<div>
+    <a asp-action="Edit" asp-route-id="@Model.Id">Edit</a> |
+    <a asp-action="Index">Back to List</a>
+</div>
