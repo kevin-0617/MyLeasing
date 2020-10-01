@@ -19,16 +19,20 @@ namespace MyLeasing.Web.Controllers
     {
         private readonly DataContext _dataContext;
         private readonly IUserHelper _userHelper;
+        private readonly ICombosHelper _combosHelper;
+        private readonly IConverterHerper _ConverterHerper;
 
-
-        public OwnersController(
+       public OwnersController(
             DataContext dataContext,
-            IUserHelper userHelper)
+            IUserHelper userHelper,
+            ICombosHelper combosHelper,
+            IConverterHerper ConverterHerper)
 
         {
             _dataContext = dataContext;
             _userHelper = userHelper;
-
+            _combosHelper = combosHelper;
+            _ConverterHerper = ConverterHerper;
         }
 
         public IActionResult Index()
@@ -63,33 +67,62 @@ namespace MyLeasing.Web.Controllers
             return View(owner);
         }
 
+       public IActionResult Create()
+        {
+            return View();
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(AddUserViewModel view)
+        public async Task<IActionResult> Create(AddUserViewModel model)
         {
             if (ModelState.IsValid)
             {
-                var user = await AddUser(view);
-                if (user == null)
+                var user = await CreateUserAsync(model);
+                if (user != null)
                 {
-                    ModelState.AddModelError(string.Empty, "This email is already used.");
-                    return View(view);
+                    var owner = new Owner
+                    {
+                        contracts = new List<Contract>(),
+                        Properties = new List<Property>(),
+                        User = user
+                    };
+
+                    _dataContext.Owners.Add(owner);
+                    await _dataContext.SaveChangesAsync();
+                    return RedirectToAction("Index");
                 }
-
-                var owner = new Owner
-                {
-                    Properties = new List<Property>(),
-                    contracts = new List<Contract>(),
-                    User = user,
-                };
-
-                _dataContext.Owners.Add(owner);
-                await _dataContext.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                ModelState.AddModelError(string.Empty, "User with this email already exist.");
             }
 
-            return View(view);
+            return View(model);
         }
+
+        //  metodo crear usuario
+        private async Task<User> CreateUserAsync(AddUserViewModel model)
+        {
+            var user = new User
+            {
+                Address = model.Address,
+                Document = model.Document,
+                Email = model.Username,
+                FirstName = model.FirstName,
+                LastName = model.LastName,
+                PhoneNumber = model.PhoneNumber,
+                UserName = model.Username
+
+            };
+
+            var result = await _userHelper.AddUserAsync(user, model.Password);
+            if (result.Succeeded)
+            {
+                user = await _userHelper.GetUserByEmailAsync(model.Username);
+                await _userHelper.AddUserToRoleAsync(user, "Owner");
+                return user;
+            }
+            return null;
+        }
+
 
         private async Task<User> AddUser(AddUserViewModel view)
         {
@@ -115,6 +148,7 @@ namespace MyLeasing.Web.Controllers
             return newUser;
         }
 
+       //combo 
         public async Task<IActionResult> AddProperty(int? id)
         {
             if (id == null)
@@ -128,63 +162,34 @@ namespace MyLeasing.Web.Controllers
                 return NotFound();
             }
 
-            var view = new PropertyViewModel
+            var model = new PropertyViewModel
             {
                 OwnerId = owner.Id,
-                PropertyTypes = GetComboPropertyTypes()
+                PropertyTypes = _combosHelper.GetComboPropertyTypes()
             };
 
-            return View(view);
+            return View(model);
         }
 
+
+
         [HttpPost]
-        public async Task<IActionResult> AddProperty(PropertyViewModel view)
+        public async Task<IActionResult> AddProperty(PropertyViewModel model)
         {
             if (ModelState.IsValid)
             {
-                var property = await ToPropertyAsync(view);
+                var property = await _ConverterHerper.ToPropertyAsync(model, true);
                 _dataContext.Properties.Add(property);
                 await _dataContext.SaveChangesAsync();
-                return RedirectToAction($"{nameof(Details)}/{view.OwnerId}");
+                return RedirectToAction($"Details/{model.OwnerId}");
             }
 
-            return View(view);
+            return View(model);
         }
 
-        private async Task<Property> ToPropertyAsync(PropertyViewModel view)
-        {
-            return new Property
-            {
-                Address = view.Address,
-                HasParkingLot = view.HasParkingLot,
-                IsAvailable = view.IsAvailable,
-                Neighborhood = view.Neighborhood,
-                Price = view.Price,
-                Rooms = view.Rooms,
-                SquareMeters = view.SquareMeters,
-                Stratum = view.Stratum,
-                Owner = await _dataContext.Owners.FindAsync(view.OwnerId),
-                PropertyType = await _dataContext.propertyTypes.FindAsync(view.PropertyTypeId),
-                Remarks = view.Remarks
-            };
-        }
 
-        private IEnumerable<SelectListItem> GetComboPropertyTypes()
-        {
-            var list = _dataContext.propertyTypes.Select(p => new SelectListItem
-            {
-                Text = p.Name,
-                Value = p.Id.ToString()
-            }).OrderBy(p => p.Text).ToList();
 
-            list.Insert(0, new SelectListItem
-            {
-                Text = "(Select a property type...)",
-                Value = "0"
-            });
 
-            return list;
-        }
 
 
 
