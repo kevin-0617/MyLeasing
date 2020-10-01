@@ -54,10 +54,12 @@ namespace MyLeasing.Web
 
             //solo se ejecuta una vez
             services.AddTransient<SeedDb>();
+            //se ejecuta cada ves que se requiere
             services.AddScoped<IUserHelper, UserHelper>();
             services.AddScoped<ICombosHelper, CombosHelper>();
             services.AddScoped<IConverterHerper, ConverterHerper>();
-            
+            services.AddScoped<IImageHelper, ImageHelper>();
+
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
         }
 

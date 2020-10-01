@@ -7,7 +7,7 @@ namespace MyLeasing.Web.Helpers
 {
     public class CombosHelper : ICombosHelper
     {
-        private DataContext _dataContext;
+        private readonly DataContext _dataContext;
 
         public CombosHelper(DataContext dataContext)
         {
