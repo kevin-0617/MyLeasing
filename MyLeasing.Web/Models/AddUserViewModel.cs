@@ -2,7 +2,7 @@
 
 namespace MyLeasing.Web.Models
 {
-    public class AddUserViewModel
+    public class AddUserViewModel 
     {
         [Display(Name = "Email")]
         [Required(ErrorMessage = "The field {0} is mandatory.")]

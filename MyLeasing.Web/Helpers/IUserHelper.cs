@@ -23,6 +23,8 @@ namespace MyLeasing.Web.Helpers
 
         Task<bool> DeleteUserAsync(string email);
 
+        Task<IdentityResult> UpdateUserAsync(User user);
+
     }
 }
 
