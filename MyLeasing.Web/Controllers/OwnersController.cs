@@ -303,6 +303,126 @@ namespace MyLeasing.Web.Controllers
             return View(model);
         }
 
+        //se le pasa el id de la propiedad
+        public async Task<IActionResult> AddContract(int? id)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var property = await _dataContext.Properties
+                //se incluye el owner para pasar al modelo
+                .Include(p => p.Owner)
+                .FirstOrDefaultAsync(p => p.Id == id.Value);
+            if (property == null)
+            {
+                return NotFound();
+            }
+            //enviar a la propiedad
+            var model = new ContractViewModel
+            {
+                OwnerId = property.Owner.Id,
+                PropertyId = property.Id,
+                //se llama al metodo GetComboLessees
+                Lessees = _combosHelper.GetComboLessees(),
+                Price = property.Price,
+                StartDate = DateTime.Today,
+                EndDate = DateTime.Today.AddYears(1)
+            };
+
+            return View(model);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> AddContract(ContractViewModel model)
+        {
+            if (ModelState.IsValid)
+            {
+                var contract = await _ConverterHerper.ToContractAsync(model, true);
+                _dataContext.contracts.Add(contract);
+                await _dataContext.SaveChangesAsync();
+                return RedirectToAction($"{nameof(DetailsProperty)}/{model.PropertyId}");
+            }
+
+            return View(model);
+        }
+
+        //editar contrato 
+        //id de contrato
+        public async Task<IActionResult> EditContract(int? id)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var contract = await _dataContext.contracts
+                .Include(p => p.Owner)
+                .Include(p => p.Lessee)
+                .Include(p => p.Property)
+                .FirstOrDefaultAsync(p => p.Id == id.Value);
+            if (contract == null)
+            {
+                return NotFound();
+            }
+
+            return View(_ConverterHerper.ToContractViewModel(contract));
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> EditContract(ContractViewModel model)
+        {
+            if (ModelState.IsValid)
+            {
+                var contract = await _ConverterHerper.ToContractAsync(model, false);
+                _dataContext.contracts.Update(contract);
+                await _dataContext.SaveChangesAsync();
+                return RedirectToAction($"{nameof(DetailsProperty)}/{model.PropertyId}");
+            }
+
+            return View(model);
+        }
+
+        public async Task<IActionResult> DeleteImage(int? id)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var propertyImage = await _dataContext.propertyImages
+                .Include(pi => pi.Property)
+                .FirstOrDefaultAsync(pi => pi.Id == id.Value);
+            if (propertyImage == null)
+            {
+                return NotFound();
+            }
+
+            _dataContext.propertyImages.Remove(propertyImage);
+            await _dataContext.SaveChangesAsync();
+            return RedirectToAction($"{nameof(DetailsProperty)}/{propertyImage.Property.Id}");
+        }
+
+        public async Task<IActionResult> DeleteContract(int? id)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var contract = await _dataContext.contracts
+                .Include(c => c.Property)
+                .FirstOrDefaultAsync(c => c.Id == id.Value);
+            if (contract == null)
+            {
+                return NotFound();
+            }
+
+            _dataContext.contracts.Remove(contract);
+            await _dataContext.SaveChangesAsync();
+            return RedirectToAction($"{nameof(DetailsProperty)}/{contract.Property.Id}");
+        }
 
 
     }

@@ -21,6 +21,45 @@ namespace MyLeasing.Web.Helpers
             _dataContext = dataContext;
             _combosHelper = combosHelper;
         }
+
+        public async Task<Contract> ToContractAsync(ContractViewModel model, bool isNew)
+        {
+            return new Contract
+            {
+                EndDate = model.EndDate.ToUniversalTime(),
+                Id = isNew ? 0 : model.Id,
+                IsActive = model.IsActive,
+                Lessee = await _dataContext.Lessees.FindAsync(model.LesseeId),
+                Owner = await _dataContext.Owners.FindAsync(model.OwnerId),
+                Price = model.Price,
+                Property = await _dataContext.Properties.FindAsync(model.PropertyId),
+                Remarks = model.Remarks,
+                StartDate = model.StartDate.ToUniversalTime(),
+                
+            };
+        }
+
+        public ContractViewModel ToContractViewModel(Contract contract)
+        {
+            return new ContractViewModel
+            {
+                EndDate = contract.EndDateLocal,
+                Id = contract.Id,
+                IsActive = contract.IsActive,
+                Lessee = contract.Lessee,
+                Owner = contract.Owner,
+                Price = contract.Price,
+                Property = contract.Property,
+                Remarks = contract.Remarks,
+                StartDate = contract.StartDateLocal,
+                LesseeId = contract.Lessee.Id,
+                Lessees = _combosHelper.GetComboLessees(),
+                OwnerId = contract.Owner.Id,
+                PropertyId = contract.Property.Id
+
+            };
+        }
+
         public async Task<Property> ToPropertyAsync(PropertyViewModel model, bool isNew)
         {
             return new Property
@@ -54,17 +93,18 @@ namespace MyLeasing.Web.Helpers
                 Neighborhood = property.Neighborhood,
                 Owner = property.Owner,
                 Price = property.Price,
-                propertyImages =  property.propertyImages,
+                propertyImages = property.propertyImages,
                 PropertyType = property.PropertyType,
                 Remarks = property.Remarks,
                 Rooms = property.Rooms,
                 SquareMeters = property.SquareMeters,
                 Stratum = property.Stratum,
-                OwnerId= property.Owner.Id,
+                OwnerId = property.Owner.Id,
                 PropertyTypeId = property.PropertyType.Id,
                 PropertyTypes = _combosHelper.GetComboPropertyTypes()
 
             };
         }
     }
+    
 }
