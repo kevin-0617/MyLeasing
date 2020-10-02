@@ -424,6 +424,34 @@ namespace MyLeasing.Web.Controllers
             return RedirectToAction($"{nameof(DetailsProperty)}/{contract.Property.Id}");
         }
 
+        public async Task<IActionResult> Delete(int? id)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var owner = await _dataContext.Owners
+                .Include(o => o.User)
+                .Include(o => o.Properties)
+                .FirstOrDefaultAsync(m => m.Id == id);
+            if (owner == null)
+            {
+                return NotFound();
+            }
+
+            if(owner.Properties.Count != 0)
+            {
+                ModelState.AddModelError(string.Empty, "Owner can`t be delete because it has properties");
+                return RedirectToAction(nameof(Index));
+            }
+
+
+            _dataContext.Owners.Remove(owner);
+            await _dataContext.SaveChangesAsync();
+            await _userHelper.DeleteUserAsync(owner.User.Email);
+            return RedirectToAction(nameof(Index));
+        }
 
     }
 }
